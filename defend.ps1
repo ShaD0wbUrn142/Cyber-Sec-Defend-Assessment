@@ -36,6 +36,26 @@ function setupQuadDoH {
 
 function resetDoH {
 	Set-DnsClientServerAddress -InterfaceAlias "Ethernet 3" -ServerAddresses ("10.0.2.3")
+	Remove-DnsClientDohServerAddress 1.1.1.2
+	$guid = (Get-NetAdapter -Name "Ethernet 3").InterfaceGuid
+	Remove-Item -Path "HKLM:\System\CurrentControlSet\Services\Dnscache\InterfaceSpecificParameters\${guid}" -Force
+	Remove-ItemProperty -Path "HKLM:SYSTEM\CurrentControlSet\Services\Dnscache\Parameters" -Name "EnableAutoDoH"
+}
+
+function enableHTTPBlock {
+	if(Get-NetFirewallRule -DisplayName HTTP-Outbound){
+		Set-NetFirewallRule -DisplayName 'HTTP-Outbound' -Direction Outbound -Action Block -Protocol TCP -RemotePort 80
+	}else{
+		New-NetFirewallRule -DisplayName 'HTTP-Outbound' -Direction Outbound -Action Block -Protocol TCP -RemotePort 80
+	}
+}
+
+function disableHTTPBlock {
+	Set-NetFirewallRule -DisplayName 'HTTP-Outbound' -Direction Outbound -Action Allow -Protocol TCP -RemotePort 80
+}
+
+function testHTTPBlock {
+	Test-NetConnection -ComputerName "www.google.com" -InformationLevel "Detailed" -Port 80
 }
 
 switch ($arg) {
@@ -55,8 +75,19 @@ switch ($arg) {
         # Call the resetDoH function
         resetDoH
     }
+	"blockHTTP" {
+        # Call the enableHTTPBlock function
+        enableHTTPBlock
+    }
+	"resetHTTP" {
+        # Call the disableHTTPBlock function
+        disableHTTPBlock
+    }"testHTTP" {
+        # Call the testHTTPBlock function
+        testHTTPBlock
+    }
     default {
-        Write-Output "Invalid argument provided. Use: DoH-test, DoH-enable, setupQuadDoH, resetDoH."
+        Write-Output "Invalid argument provided. Use: DoH-test, DoH-enable, setupQuadDoH, resetDoH, blockHTTP, resetHTTP, testHTTP."
     }
 }
 
