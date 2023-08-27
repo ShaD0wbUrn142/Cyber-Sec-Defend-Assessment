@@ -27,12 +27,15 @@ function enableDoH {
 }
 
 function setupQuadDoH {
-
+	Set-DnsClientServerAddress -InterfaceAlias "Ethernet 3" -ServerAddresses ("1.1.1.2")
+	Add-DnsClientDohServerAddress 1.1.1.2 `https://security.cloudflare-dns.com/dns-query ` -AutoUpgrade $True
+	$guid = (Get-NetAdapter -Name "Ethernet 3").InterfaceGuid
+	New-Item -Path "HKLM:\System\CurrentControlSet\Services\Dnscache\InterfaceSpecificParameters\${guid}\DohInterfaceSettings\Doh\1.1.1.2" -Force
+	Set-ItemProperty -Path "HKLM:\System\CurrentControlSet\Services\Dnscache\InterfaceSpecificParameters\${guid}\DohInterfaceSettings\Doh\1.1.1.2" -Name "DohFlags" -Value "1" -Force
 }
 
 function resetDoH {
-	$networkInterface = Get-NetAdapter | Where-Object { $_.InterfaceAlias -eq 'Ethernet 3' }
-	Set-DnsClientServerAddress -InterfaceIndex $adapterIndex -ServerAddresses "10.0.2.3"
+	Set-DnsClientServerAddress -InterfaceAlias "Ethernet 3" -ServerAddresses ("10.0.2.3")
 }
 
 switch ($arg) {
